@@ -4,12 +4,13 @@ import discord
 from discord.ext import commands
 
 # 1. Configuration & Security
-# These variables pull directly from the "Environment Variables" or "Variables" tab of your cloud host panel.
-DISCORD_TOKEN = os.getenv("DISCORD_TOKEN")
-API_KEY = os.getenv("MYMC_API_KEY")
-SERVER_ID = os.getenv("MYMC_SERVER_ID")  # Add your server ID to your host variables as well
+# Change ONLY the DISCORD_TOKEN string if Discord has deactivated your old one.
+DISCORD_TOKEN = "token"
+API_KEY = "api"
+SERVER_ID = "id" 
 
-BASE_URL = f"https://info.my-mc.link/api/client/servers/{SERVER_ID}/power"
+# Base API URL matching your provider's custom endpoints
+BASE_URL = "https://api.my-mc.link"
 
 # 2. Bot Setup
 intents = discord.Intents.default()
@@ -19,24 +20,31 @@ bot = commands.Bot(command_prefix="!", intents=intents)
 # 3. Helper Function for API Calls
 def send_power_signal(action: str) -> tuple[bool, str]:
     """
-    Sends a POST request to the my-mc.link panel to start or stop the server.
+    Sends a GET request to the my-mc.link panel to start or stop the server.
     Returns a tuple: (success_boolean, status_message)
     """
-    if not API_KEY or not SERVER_ID:
-        return False, "Missing API configuration keys on the host panel."
+    if not API_KEY:
+        return False, "Missing API authorization key."
 
+    # Custom headers required by my-mc.link documentation
     headers = {
-        "Authorization": f"Bearer {API_KEY}",
+        "Accept": "application/json",
         "Content-Type": "application/json",
-        "Accept": "application/json"
+        "x-my-mc-auth": API_KEY
     }
-    payload = {"signal": action}
+    
+    # Constructs either https://api.my-mc.link/start or https://api.my-mc.link/stop
+    url = f"{BASE_URL}/{action}"
 
     try:
-        response = requests.post(BASE_URL, json=payload, headers=headers)
-        # Pterodactyl panels usually return 204 No Content for successful power actions
-        if response.status_code in [200, 204]:
-            return True, f"Successfully sent the **{action}** command to the server."
+        response = requests.get(url, headers=headers)
+        
+        if response.status_code == 200:
+            data = response.json()
+            if data.get("success") is True:
+                return True, f"Successfully sent the **{action}** command to the server."
+            else:
+                return False, f"Panel rejected command: `{data.get('message', 'Unknown error')}`"
         else:
             return False, f"Panel returned error code {response.status_code}: {response.text}"
     except Exception as e:
@@ -70,6 +78,6 @@ async def stop_server(ctx):
 # 5. Start the Application
 if __name__ == "__main__":
     if not DISCORD_TOKEN:
-        print("Error: DISCORD_TOKEN environment variable is missing.")
+        print("Error: DISCORD_TOKEN is missing.")
     else:
         bot.run(DISCORD_TOKEN)

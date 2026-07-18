@@ -5,9 +5,9 @@ from discord.ext import commands
 
 # 1. Configuration & Security
 # Change ONLY the DISCORD_TOKEN string if Discord has deactivated your old one.
-DISCORD_TOKEN = "token"
-API_KEY = "api"
-SERVER_ID = "id" 
+DISCORD_TOKEN = os.getenv("DISCORD_TOKEN")
+API_KEY = os.getenv("MYMC_API_KEY")
+SERVER_ID = os.getenv("MYMC_SERVER_ID")
 
 # Base API URL matching your provider's custom endpoints
 BASE_URL = "https://api.my-mc.link"
